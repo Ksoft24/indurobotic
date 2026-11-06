@@ -1,0 +1,4 @@
+/* Inyectado en cada simulador: tipografía y acento unificados con la plataforma */
+:root{--indu-accent:#ff6a13}
+body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif!important}
+::-webkit-scrollbar-thumb{background:var(--indu-accent)!important}

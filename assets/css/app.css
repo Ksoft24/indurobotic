@@ -1,0 +1,27 @@
+:root{--bg:#0b1020;--panel:#131a2e;--panel2:#1a2340;--line:#27325a;--tx:#e8ecf8;--mut:#8f9bbd;--ac:#ff6a13;--ac2:#ff8a45;--ok:#22c55e;--bad:#ef4444;--warn:#f59e0b;--r:14px;color-scheme:dark}
+[data-theme=claro]{--bg:#f3f5fb;--panel:#fff;--panel2:#eef1f9;--line:#d9deee;--tx:#171d33;--mut:#5b6685;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif;display:flex;min-height:100vh}
+a{color:var(--ac2);text-decoration:none}h1{font-size:1.5rem;margin:0 0 1.2rem}h2{margin-top:0}
+.side{width:240px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;flex:none}
+.brand{padding:20px;font-weight:600;font-size:1.05rem;letter-spacing:.04em}.brand i{color:var(--ac);margin-right:6px}.brand b{color:var(--ac)}
+.side nav{flex:1;padding:0 10px;display:flex;flex-direction:column;gap:2px}
+.side nav a{padding:10px 12px;border-radius:10px;color:var(--mut);display:flex;gap:10px;align-items:center}.side nav a:hover{background:var(--panel2);color:var(--tx)}
+.side nav a.on{background:linear-gradient(90deg,var(--ac),var(--ac2));color:#fff}
+.side-foot{padding:14px;border-top:1px solid var(--line);display:flex;align-items:center;gap:6px;flex-wrap:wrap}.who{flex:1 0 100%;font-weight:600;font-size:.85rem}.who small{display:block;color:var(--mut);font-weight:400}
+.main{flex:1;padding:28px;min-width:0}.center{margin:auto;width:100%;padding:20px;display:flex;justify-content:center}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px;margin-bottom:18px}.narrow{max-width:440px;width:100%}.wide{max-width:560px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.sim{display:block;color:var(--tx);transition:.15s}.sim:hover{transform:translateY(-3px);border-color:var(--ac)}.sim i{font-size:1.6rem;color:var(--ac);margin-bottom:10px}.sim p{color:var(--mut);margin:.3rem 0 0;font-size:.9rem}
+label{display:block;font-size:.8rem;color:var(--mut);margin:12px 0 4px}
+input,select{width:100%;padding:10px 12px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--tx);font:inherit}input:focus,select:focus{outline:2px solid var(--ac);border-color:transparent}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.btn{display:inline-flex;gap:8px;align-items:center;border:0;cursor:pointer;padding:10px 16px;border-radius:10px;background:var(--ac);color:#fff;font:inherit;font-weight:600}.btn:hover{background:var(--ac2)}
+.btn.ghost{background:var(--panel2);color:var(--tx);border:1px solid var(--line)}.btn.danger{background:var(--bad)}.btn.sm{padding:5px 10px;font-size:.8rem}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);font-size:.9rem}th{color:var(--mut);font-weight:500;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+.tw{overflow-x:auto}.badge{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.75rem;font-weight:600;background:var(--panel2);border:1px solid var(--line)}
+.b-ok{color:var(--ok)}.b-bad{color:var(--bad)}.b-warn{color:var(--warn)}.b-demo{color:var(--mut)}.b-standard{color:var(--warn)}.b-premium{color:var(--ac)}
+.toast{background:var(--panel2);border-left:4px solid var(--ac);padding:12px 16px;border-radius:10px;margin-bottom:16px}
+.meter{height:8px;background:var(--panel2);border-radius:9px;overflow:hidden;margin-top:8px}.meter i{display:block;height:100%;background:linear-gradient(90deg,var(--ac),var(--ac2))}
+.inline{display:inline}.simbar{height:52px;display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.simwrap{display:flex;flex-direction:column;height:100vh;width:100%}.simwrap iframe{flex:1;border:0;width:100%;background:#000}
+@media(max-width:800px){body{flex-direction:column}.side{width:100%;height:auto;position:static}.side nav{flex-direction:row;overflow-x:auto}}

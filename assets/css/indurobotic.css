@@ -1,0 +1,280 @@
+/* =====================================================================
+   InduRobotic · HOJA DE ESTILO GENERAL
+   Un solo archivo para todo el proyecto:
+     1. Fuente        2. Paleta y tokens        3. Plataforma (.indu-app)
+     4. Piel de simuladores (html.indu-skin, se inyecta en sims/*.html)
+   Para cambiar un color en todo el proyecto, edite solo la sección 2.
+   ===================================================================== */
+
+/* ---------- 1. FUENTE (única) ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ---------- 2. PALETA Y TOKENS ---------- */
+:root{
+  /* Paleta base (escalas 50–950). Acero = neutros; Naranja = marca; Verde/Ámbar/Rojo/Azul = estados */
+  /* Acero (neutros) */
+  --acero-50:#F4F6F9; --acero-100:#E6EAF0; --acero-200:#D0D7E0; --acero-300:#B8C2CC; --acero-400:#96A0AD; --acero-500:#77808D; --acero-600:#5C6572; --acero-700:#434B57; --acero-800:#2C333D; --acero-900:#1D232B; --acero-950:#131820;
+  /* Naranja Industrial (marca) */
+  --naranja-50:#FFF5EE; --naranja-100:#FFE9DC; --naranja-200:#FFD2B8; --naranja-300:#FFB78E; --naranja-400:#FF9253; --naranja-500:#FF6A13; --naranja-600:#D95D15; --naranja-700:#AF4E17; --naranja-800:#803E1A; --naranja-900:#552F1C; --naranja-950:#34231E;
+  /* Verde Operación (OK) */
+  --verde-50:#F0FAF5; --verde-100:#E0F5E9; --verde-200:#C0ECD3; --verde-300:#9AE0B8; --verde-400:#66D094; --verde-500:#2DBE6C; --verde-600:#29A360; --verde-700:#248652; --verde-800:#1F6443; --verde-900:#1A4635; --verde-950:#172F2B;
+  /* Ámbar Alerta (aviso) */
+  --ambar-50:#FEF9F0; --ambar-100:#FEF2DE; --ambar-200:#FCE4BD; --ambar-300:#FAD495; --ambar-400:#F8BE5E; --ambar-500:#F5A623; --ambar-600:#D18F23; --ambar-700:#A87622; --ambar-800:#7B5921; --ambar-900:#524021; --ambar-950:#332C20;
+  /* Rojo Paro (peligro) */
+  --rojo-50:#FDF2F3; --rojo-100:#FBE4E4; --rojo-200:#F7C8CA; --rojo-300:#F3A7AA; --rojo-400:#EC797D; --rojo-500:#E5484D; --rojo-600:#C34046; --rojo-700:#9E383E; --rojo-800:#742E35; --rojo-900:#4E252D; --rojo-950:#301F26;
+  /* Azul Datos (info) */
+  --azul-50:#F1F8FE; --azul-100:#E1F1FD; --azul-200:#C4E2FA; --azul-300:#A0D1F8; --azul-400:#6FBAF4; --azul-500:#3AA0F0; --azul-600:#348ACF; --azul-700:#2D72A9; --azul-800:#255780; --azul-900:#1E3E5A; --azul-950:#182B3D;
+  --blanco:#FFFFFF;
+
+  /* Entorno 3D de los simuladores (referencia) */
+  --env-cielo:#DBE1E7;   /* Gris Niebla: fondo/cielo y niebla (el más claro) */
+  --env-piso:#6B7482;    /* Gris Acero: piso (como Cobot, J25, J51, DualArm, Delta, SCARA) */
+  --env-grilla:#7D8696;  /* Gris Grilla: líneas (con #8A93A1 en los cruces) */
+
+  /* Tipografía */
+  --font:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --fs-xs:11px; --fs-sm:12px; --fs-md:13px; --fs-lg:15px; --fs-xl:18px; --fs-2xl:24px;
+
+  /* Forma */
+  --r-sm:6px; --r-md:8px; --r-lg:12px; --r-xl:16px; --r-pill:999px;
+  --shadow-1:0 1px 2px rgba(0,0,0,.25);
+  --shadow-2:0 10px 30px rgba(0,0,0,.30);
+
+  /* Semánticos · tema oscuro (por defecto) */
+  --bg:var(--acero-950);
+  --surface:var(--acero-900);
+  --surface-2:var(--acero-800);
+  --surface-3:var(--acero-700);
+  --line:#343C47;
+  --line-strong:var(--acero-700);
+  --tx:var(--acero-100);        /* texto principal */
+  --tx-2:var(--acero-300);      /* texto secundario */
+  --tx-3:var(--acero-400);      /* texto atenuado / ayudas */
+  --tx-brand:var(--naranja-400);
+  --brand:var(--naranja-500);
+  --brand-hover:var(--naranja-400);
+  --brand-press:var(--naranja-600);
+  --on-brand:var(--acero-950);  /* texto sobre naranja (contraste 6.2:1) */
+  --btn-2:var(--acero-800);
+  --btn-2-hover:var(--acero-700);
+  --focus:var(--azul-400);
+  --ok:var(--verde-400);     --ok-solid:var(--verde-700);     --ok-soft:rgba(45,190,108,.14);
+  --warn:var(--ambar-400);   --warn-solid:var(--ambar-600);   --warn-soft:rgba(245,166,35,.14);
+  --danger:var(--rojo-400);  --danger-solid:var(--rojo-700);  --danger-soft:rgba(229,72,77,.14);
+  --info:var(--azul-400);    --info-solid:var(--azul-700);    --info-soft:rgba(58,160,240,.14);
+
+  /* Piel de simuladores: siempre oscura sobre el entorno 3D gris */
+  --sim-bg:var(--acero-950);
+  --sim-panel:rgba(19,24,32,.90);
+  --sim-line:#343C47;
+  --sim-line-2:var(--acero-700);
+  --sim-field:var(--acero-900);
+  --sim-btn:var(--acero-800);
+  --tx-sim:var(--acero-100);
+  --tx-sim-2:var(--acero-300);
+  --tx-sim-3:var(--acero-400);
+}
+:root[data-theme="claro"]{
+  --bg:var(--acero-100);
+  --surface:var(--acero-50);
+  --surface-2:var(--blanco);
+  --surface-3:var(--acero-200);
+  --line:var(--acero-200);
+  --line-strong:var(--acero-300);
+  --tx:var(--acero-900);
+  --tx-2:var(--acero-700);
+  --tx-3:var(--acero-600);
+  --tx-brand:var(--naranja-700);
+  --brand-hover:var(--naranja-400);
+  --btn-2:var(--blanco);
+  --btn-2-hover:var(--acero-100);
+  --ok:var(--verde-700);   --warn:var(--ambar-700);   --danger:var(--rojo-700);   --info:var(--azul-700);
+  --shadow-1:0 1px 2px rgba(19,24,32,.10);
+  --shadow-2:0 10px 30px rgba(19,24,32,.14);
+}
+
+/* ---------- 3. PLATAFORMA (body.indu-app) ---------- */
+html{color-scheme:dark}
+html[data-theme="claro"]{color-scheme:light}
+*{box-sizing:border-box}
+.indu-app{margin:0;display:flex;min-height:100vh;background:var(--bg);color:var(--tx);font:400 var(--fs-md)/1.5 var(--font);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.indu-app a{color:var(--tx-brand);text-decoration:none}
+.indu-app a:hover{text-decoration:underline}
+.indu-app h1{margin:0 0 4px;font-size:var(--fs-2xl);font-weight:700;letter-spacing:-.01em;color:var(--tx)}
+.indu-app h2{margin:0 0 12px;font-size:var(--fs-xl);font-weight:700;color:var(--tx)}
+.indu-app h3{margin:0 0 6px;font-size:var(--fs-lg);font-weight:600;color:var(--tx)}
+.indu-app p{margin:0 0 10px;color:var(--tx-2)}
+.indu-app small,.indu-app .muted{color:var(--tx-3);font-size:var(--fs-sm)}
+.indu-app b,.indu-app strong{font-weight:600;color:var(--tx)}
+.indu-app :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* Estructura */
+.indu-app .side{width:248px;flex:none;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;background:var(--surface);border-right:1px solid var(--line)}
+.indu-app .brand{padding:22px 20px 18px;font-size:var(--fs-xl);font-weight:800;letter-spacing:-.01em;color:var(--tx)}
+.indu-app .brand i{color:var(--brand);margin-right:8px}
+.indu-app .brand b{color:var(--brand)}
+.indu-app .side nav{flex:1;display:flex;flex-direction:column;gap:2px;padding:0 12px;overflow-y:auto}
+.indu-app .side nav a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-md);color:var(--tx-2);font-weight:500;text-decoration:none}
+.indu-app .side nav a i{width:18px;text-align:center;color:var(--tx-3)}
+.indu-app .side nav a:hover{background:var(--surface-2);color:var(--tx)}
+.indu-app .side nav a.on{background:var(--brand);color:var(--on-brand);font-weight:600}
+.indu-app .side nav a.on i{color:var(--on-brand)}
+.indu-app .side-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px 16px;border-top:1px solid var(--line)}
+.indu-app .who{flex:1 0 100%;font-size:var(--fs-sm);font-weight:600;color:var(--tx)}
+.indu-app .who small{display:block;font-weight:400}
+.indu-app .main{flex:1;min-width:0;padding:32px 36px}
+.indu-app .page-head{margin-bottom:24px}
+.indu-app .page-head p{margin:0}
+.indu-app .center{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+
+/* Tarjetas y rejillas */
+.indu-app .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:22px;margin-bottom:18px;box-shadow:var(--shadow-1)}
+.indu-app .card.narrow{max-width:440px;width:100%}
+.indu-app .card.wide{max-width:640px}
+.indu-app .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px}
+.indu-app .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.indu-app .inline{display:inline}
+.indu-app .tw{overflow-x:auto}
+
+/* Simulaciones (dashboard) */
+.indu-app .sec-title{display:flex;align-items:baseline;gap:10px;margin:26px 0 12px;font-size:var(--fs-sm);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tx-3)}
+.indu-app .sec-title span{font-weight:500;letter-spacing:0;text-transform:none}
+.indu-app .sim{display:flex;flex-direction:column;gap:6px;margin:0;color:var(--tx);text-decoration:none;transition:transform .15s,border-color .15s,box-shadow .15s}
+.indu-app .sim:hover{transform:translateY(-3px);border-color:var(--brand);box-shadow:var(--shadow-2);text-decoration:none}
+.indu-app .sim-ico{width:44px;height:44px;border-radius:var(--r-md);display:grid;place-items:center;margin-bottom:6px;font-size:20px;background:var(--surface-2);color:var(--brand);border:1px solid var(--line)}
+.indu-app .sim h3{margin:0}
+.indu-app .sim p{margin:0;font-size:var(--fs-sm);color:var(--tx-3)}
+.indu-app .sim .tags{margin-top:auto;padding-top:10px;display:flex;gap:6px;flex-wrap:wrap}
+.indu-app .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.indu-app .chip{height:32px;padding:0 14px;border-radius:var(--r-pill);border:1px solid var(--line-strong);background:var(--btn-2);color:var(--tx-2);font:500 var(--fs-sm)/1 var(--font);cursor:pointer;transition:.15s}
+.indu-app .chip:hover{border-color:var(--brand);color:var(--tx)}
+.indu-app .chip.on{background:var(--brand);border-color:var(--brand);color:var(--on-brand);font-weight:600}
+
+/* Botones (sistema único) */
+.indu-app .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 16px;border-radius:var(--r-md);border:1px solid var(--brand);background:var(--brand);color:var(--on-brand);font:600 var(--fs-md)/1 var(--font);cursor:pointer;text-decoration:none;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.indu-app .btn:hover{background:var(--brand-hover);border-color:var(--brand-hover);text-decoration:none;color:var(--on-brand)}
+.indu-app .btn:active{background:var(--brand-press);border-color:var(--brand-press)}
+.indu-app .btn.ghost{background:var(--btn-2);border-color:var(--line-strong);color:var(--tx)}
+.indu-app .btn.ghost:hover{background:var(--btn-2-hover);border-color:var(--brand);color:var(--tx)}
+.indu-app .btn.danger{background:var(--danger-solid);border-color:var(--danger-solid);color:#fff}
+.indu-app .btn.danger:hover{filter:brightness(1.12);color:#fff}
+.indu-app .btn.ok{background:var(--ok-solid);border-color:var(--ok-solid);color:#fff}
+.indu-app .btn.ok:hover{filter:brightness(1.12);color:#fff}
+.indu-app .btn.sm{height:30px;padding:0 12px;font-size:var(--fs-sm)}
+.indu-app .btn:disabled,.indu-app .btn[disabled]{opacity:.45;cursor:not-allowed;filter:none}
+
+/* Formularios */
+.indu-app label{display:block;margin:14px 0 6px;font-size:var(--fs-sm);font-weight:500;color:var(--tx-2)}
+.indu-app input:not([type=checkbox]):not([type=radio]):not([type=range]),.indu-app select,.indu-app textarea{width:100%;height:38px;padding:0 12px;border-radius:var(--r-md);border:1px solid var(--line-strong);background:var(--surface-2);color:var(--tx);font:400 var(--fs-md)/1 var(--font)}
+.indu-app textarea{height:auto;padding:10px 12px;line-height:1.5}
+.indu-app input::placeholder{color:var(--tx-3)}
+.indu-app input:focus,.indu-app select:focus,.indu-app textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--info-soft)}
+.indu-app input[type=checkbox],.indu-app input[type=radio],.indu-app input[type=range]{accent-color:var(--brand)}
+.indu-app input[readonly]{color:var(--tx-2)}
+
+/* Tablas */
+.indu-app table{width:100%;border-collapse:collapse}
+.indu-app th{padding:10px 10px;text-align:left;font-size:var(--fs-xs);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--tx-3);border-bottom:1px solid var(--line-strong)}
+.indu-app td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:var(--fs-md);color:var(--tx)}
+.indu-app tr:hover td{background:var(--surface-2)}
+
+/* Etiquetas y estados */
+.indu-app .badge{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border-radius:var(--r-pill);border:1px solid var(--line-strong);background:var(--surface-2);font-size:var(--fs-xs);font-weight:600;letter-spacing:.02em;color:var(--tx-2)}
+.indu-app .b-ok{color:var(--ok)}.indu-app .b-bad{color:var(--danger)}.indu-app .b-warn{color:var(--warn)}
+.indu-app .b-demo{color:var(--tx-3)}.indu-app .b-standard{color:var(--info)}.indu-app .b-premium{color:var(--tx-brand)}
+.indu-app .toast{margin-bottom:18px;padding:12px 16px;border-radius:var(--r-md);border:1px solid var(--line);border-left:4px solid var(--brand);background:var(--surface-2);color:var(--tx)}
+.indu-app .meter{height:8px;margin-top:10px;border-radius:var(--r-pill);background:var(--surface-2);overflow:hidden}
+.indu-app .meter i{display:block;height:100%;background:var(--brand);border-radius:var(--r-pill)}
+
+/* Visor de simulación (barra superior + iframe) */
+.indu-app .simwrap{display:flex;flex-direction:column;height:100vh;height:100dvh;width:100%}   /* dvh: en móvil 100vh incluye la barra del navegador y recorta la parte baja de la simulación */
+.indu-app .simbar{height:52px;flex:none;display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--line)}
+.indu-app .simbar b{font-size:var(--fs-lg)}
+.indu-app .simwrap iframe{flex:1;width:100%;border:0;background:var(--env-cielo)}
+
+/* Guía de estilo */
+.indu-app .fam{margin-bottom:22px}
+.indu-app .fam h3{display:flex;gap:10px;align-items:baseline}
+.indu-app .fam h3 small{font-weight:400}
+.indu-app .swatches{display:grid;grid-template-columns:repeat(11,minmax(0,1fr));gap:6px}
+.indu-app .swatch{border-radius:var(--r-md);overflow:hidden;border:1px solid var(--line);background:var(--surface-2);font-size:10px;line-height:1.3}
+.indu-app .swatch i{display:block;height:44px}
+.indu-app .swatch span{display:block;padding:5px 6px;color:var(--tx-2)}
+.indu-app .swatch span b{display:block;color:var(--tx);font-size:10px}
+.indu-app .tokens{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.indu-app .token{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface-2)}
+.indu-app .token i{width:30px;height:30px;border-radius:var(--r-sm);border:1px solid var(--line-strong);flex:none}
+.indu-app .token b{display:block;font-size:var(--fs-sm)}
+.indu-app .token small{display:block;font-size:11px}
+.indu-app .btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.indu-app .type-sample div{margin-bottom:8px}
+
+@media(max-width:900px){
+  .indu-app{flex-direction:column}
+  .indu-app .side{position:static;width:100%;height:auto}
+  .indu-app .side nav{flex-direction:row;overflow-x:auto;padding-bottom:10px}
+  .indu-app .main{padding:22px 16px}
+  .indu-app .swatches{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+/* ---------- 4. PIEL DE SIMULADORES (html.indu-skin) ----------
+   Se inyecta en cada archivo de sims/ desde sim.php. Unifica fuente, colores de texto,
+   paneles, botones, interruptores y campos sin tocar el HTML de cada simulador.
+   (Los colores de Tailwind se remapean a la paleta desde assets/js/indu-sim.js) */
+html.indu-skin{
+  color-scheme:dark;
+  font-variant-numeric:tabular-nums;
+  /* variables que usan varios simuladores */
+  --bg:var(--sim-bg); --panel:var(--sim-panel); --panel2:var(--acero-800); --line:var(--sim-line);
+  --txt:var(--tx-sim); --tx:var(--tx-sim); --dim:var(--tx-sim-3); --mut:var(--tx-sim-3);
+  --acc:var(--naranja-500); --ac:var(--naranja-500); --ok:var(--verde-400); --bad:var(--rojo-400); --warn:var(--ambar-500);
+}
+/* Fuente única (se excluyen los íconos Font Awesome) */
+html.indu-skin *:not([class*="fa-"]):not(.fa):not(.fas):not(.far):not(.fab){font-family:var(--font)!important}
+html.indu-skin body{background:var(--sim-bg)!important;color:var(--tx-sim)!important}
+
+/* Textos */
+html.indu-skin h1:not([class*="text-"]),html.indu-skin .ttl{color:var(--naranja-400)!important;font-weight:700!important}
+html.indu-skin h2:not([class*="text-"]),html.indu-skin h3:not([class*="text-"]){color:var(--tx-sim-2)!important;font-weight:600!important}
+html.indu-skin p:not([class*="text-"]),html.indu-skin .sub,html.indu-skin .subt,html.indu-skin small:not([class*="text-"]){color:var(--tx-sim-3)!important}
+html.indu-skin a:not([class*="text-"]):not([class*="bg-"]){color:var(--naranja-400)}
+html.indu-skin #status,html.indu-skin #rstat{color:var(--ambar-400)!important}
+html.indu-skin .c-blue{color:var(--azul-400)!important}
+html.indu-skin .c-green{color:var(--verde-400)!important}
+html.indu-skin .c-amber{color:var(--ambar-400)!important}
+html.indu-skin .mt{color:var(--naranja-400)!important}
+html.indu-skin summary{color:var(--naranja-400)!important;font-weight:600!important}
+
+/* Paneles */
+html.indu-skin .panel,html.indu-skin #ui,html.indu-skin #hud,html.indu-skin #recBox,html.indu-skin #mapBox,
+html.indu-skin #leftPanel,html.indu-skin .glass,html.indu-skin .glass-panel,html.indu-skin .panel-bg{
+  background:var(--sim-panel)!important;border:1px solid var(--sim-line)!important;border-radius:var(--r-lg)!important;
+  box-shadow:var(--shadow-2)!important}
+html.indu-skin .box,html.indu-skin .card,html.indu-skin details,html.indu-skin .ri,html.indu-skin .sw{
+  background:var(--sim-field)!important;border:1px solid var(--sim-line)!important;border-radius:var(--r-md)!important}
+html.indu-skin .ri.sel{border-color:var(--naranja-500)!important}
+
+/* Botones (los de Tailwind con clases bg-* conservan su color semántico, ya remapeado a la paleta) */
+html.indu-skin :is(button,.btn,.bigbtn,.rowbtn):not([class*="bg-"]):not(.a-enter-vr-button):not(.a-enter-ar-button){
+  background:var(--sim-btn)!important;color:var(--tx-sim)!important;border:1px solid var(--sim-line-2)!important;
+  border-radius:var(--r-md)!important;font-size:12px!important;font-weight:600!important;letter-spacing:.01em;
+  cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+html.indu-skin :is(button,.btn,.bigbtn):not([class*="bg-"]):not(.a-enter-vr-button):not(:disabled):hover{
+  background:var(--acero-700)!important;border-color:var(--naranja-500)!important}
+html.indu-skin :is(button,.btn,.bigbtn):not([class*="bg-"]):is(.on,.active,.ac,#vrb,.cam){
+  background:var(--naranja-500)!important;border-color:var(--naranja-500)!important;color:var(--on-brand)!important}
+html.indu-skin :is(button,.btn):not([class*="bg-"]).go{background:var(--verde-700)!important;border-color:var(--verde-700)!important;color:#fff!important}
+html.indu-skin :is(button,.btn):not([class*="bg-"]):is(.no,.rst,#rRec.on){background:var(--rojo-700)!important;border-color:var(--rojo-700)!important;color:#fff!important}
+html.indu-skin :is(button,.btn,.bigbtn):disabled{opacity:.45!important;cursor:not-allowed}
+
+/* Interruptores, campos y deslizadores */
+html.indu-skin .sw .tr{background:var(--acero-600)!important}
+html.indu-skin .sw input:checked + .tr{background:var(--naranja-500)!important}
+html.indu-skin input:not([class*="bg-"]):is([type=text],[type=number],[type=search],[type=email],[type=password]),
+html.indu-skin select:not([class*="bg-"]),html.indu-skin textarea:not([class*="bg-"]){
+  background:var(--sim-field)!important;color:var(--tx-sim)!important;border:1px solid var(--sim-line-2)!important;border-radius:var(--r-sm)!important}
+html.indu-skin input[type=range],html.indu-skin input[type=checkbox],html.indu-skin input[type=radio]{accent-color:var(--naranja-500)!important}
+html.indu-skin ::-webkit-scrollbar{width:8px;height:8px}
+html.indu-skin ::-webkit-scrollbar-track{background:transparent}
+html.indu-skin ::-webkit-scrollbar-thumb{background:var(--acero-700);border-radius:8px}
+html.indu-skin ::-webkit-scrollbar-thumb:hover{background:var(--naranja-500)}

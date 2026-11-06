@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terminal de contenedores · AGV (escala real)</title>
+<style>
+:root{--bg:#b9c2cc;--panel:rgba(18,24,33,.92);--line:#2b3644;--txt:#d7dee8;--dim:#8794a6;--acc:#ff8a2a}
+*{box-sizing:border-box}
+body{margin:0;overflow:hidden;background:var(--bg);color:var(--txt);font:13px/1.35 "Segoe UI",system-ui,sans-serif}
+a-scene{position:fixed;inset:0}
+#ui{position:fixed;top:12px;left:12px;width:300px;max-height:calc(100vh - 24px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;backdrop-filter:blur(6px);z-index:5}
+h1{font-size:15px;margin:0 0 2px;color:var(--acc);font-weight:600}
+.sub{color:var(--dim);font-size:11.5px;margin:0 0 8px}
+h3{font-size:12px;margin:10px 0 5px;color:var(--dim);font-weight:600}
+.row{display:flex;gap:6px;margin-bottom:6px}
+button{flex:1;background:#1c2634;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:8px 6px;font:inherit;font-size:12px;cursor:pointer;touch-action:none;user-select:none}
+button:hover{border-color:var(--acc)}
+button.on{background:#7a3a0c;border-color:var(--acc)}
+button.cam{background:#3a2a14}
+ol{margin:0;padding-left:18px;font-size:12px;color:var(--dim)}
+ol li.cur{color:var(--acc);font-weight:600}
+input[type=range]{width:100%;accent-color:var(--acc)}
+#ms{font-weight:600;color:var(--acc);margin-bottom:2px}
+#ms2{font-size:11.5px;color:var(--dim);margin-bottom:4px}
+#hud{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 14px;font-size:12px;white-space:nowrap;z-index:5}
+#camBox{position:fixed;right:12px;bottom:72px;width:280px;height:210px;border:1px solid var(--acc);border-radius:10px;overflow:hidden;background:#000;display:none;z-index:5}
+#camBox video,#camBox canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);object-fit:cover}
+#camBox span{position:absolute;left:0;right:0;text-align:center;font-size:11px;color:#fff;text-shadow:0 0 4px #000;z-index:2}
+#camMsg{position:absolute;bottom:4px;left:6px;right:6px;font-size:11px;color:#fff;text-shadow:0 0 4px #000;z-index:2}
+#mapBox{position:fixed;top:12px;right:12px;width:252px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px;z-index:5}
+#mapBox canvas{width:100%;display:block;border-radius:6px}
+.mt{font-size:12px;font-weight:600;color:var(--acc);margin-bottom:4px}
+@media(max-width:700px){#ui{width:250px}#camBox{width:200px;height:150px}#mapBox{display:none}}
+</style>
+<script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+</head>
+<body>
+<a-scene id="scene" sim renderer="antialias:true;colorManagement:false" vr-mode-ui="enabled:true" webxr="referenceSpaceType:local-floor"
+         background="color:#b9c2cc" fog="type:linear;color:#b9c2cc;near:180;far:700">
+  <a-entity light="type:ambient;intensity:0"></a-entity>
+  <a-entity id="rig" position="0 0 2">
+    <a-entity id="cam" camera="fov:55;near:0.1;far:1500"></a-entity>
+    <a-entity id="lh" oculus-touch-controls="hand:left"></a-entity>
+    <a-entity id="rh" oculus-touch-controls="hand:right"></a-entity>
+  </a-entity>
+</a-scene>
+
+<div id="ui">
+  <h1>Terminal de contenedores · AGV</h1>
+  <p class="sub">Escala real (contenedor 40 pies = 12,19 m). Arrastra = orbitar · rueda = zoom · M modo · P pausa · V vista.</p>
+  <h3>Modo de operación</h3>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <b id="lA" style="color:var(--acc);font-size:12px">AUTOMÁTICO</b><input type="range" id="modeSl" min="0" max="1" step="1" value="0" style="flex:1"><b id="lM" style="color:var(--dim);font-size:12px">MANUAL</b>
+  </div>
+  <div class="row"><button id="bPause">Pausar</button></div>
+  <div id="sigTxt" style="font-size:12px;font-weight:600;margin:2px 0 4px;color:var(--dim)">…</div>
+  <div id="ms">…</div><div id="ms2">…</div>
+  <ol id="steps"><li>Hacia la grúa de carga</li><li>La grúa toma de la fila y carga</li><li>Ruta hacia la grúa de descarga</li><li>La grúa engancha y sube el contenedor</li></ol>
+  <h3>Velocidad de ruta automática <b id="spdv">1.0×</b> (máx. 6 m/s)</h3>
+  <input type="range" id="spd" min="0.3" max="1.5" step="0.1" value="1">
+  <button id="bClear" style="width:100%;margin-top:8px">Reiniciar simulación (vuelven los 8 contenedores)</button>
+  <h3>Conducción manual (modo MANUAL)</h3>
+  <button id="bCam" class="cam" style="width:100%;margin-bottom:6px">Activar cámara y gestos de mano</button>
+  <div class="row"><button data-d="f">Avanzar</button><button data-d="b">Retroceder</button></div>
+  <div class="row"><button data-d="l">Izquierda</button><button data-d="r">Derecha</button></div>
+  <button id="bView" style="width:100%">Vista: exterior (siguiendo al AGV)</button>
+  <p class="sub" style="margin:6px 0 0"><b>Automático</b> (la cámara se activa sola): ✋ mano abierta = ALTO · ☝ índice arriba = seguir avanzando. <b>Manual</b>: mano arriba = avanzar · abajo = retroceder · lados = girar · puño = detener; teclado W A S D / flechas. VR: stick = mover, A/X/gatillo = modo, B/Y/grip = vista (puesto de carga → grúa de descarga → viajar en el AGV), clic de stick = recalibrar altura.</p>
+</div>
+<div id="mapBox"><div class="mt">Ruta de traslado y patio</div><canvas id="map" width="240" height="120"></canvas></div>
+<div id="hud">…</div>
+<div id="camBox">
+  <video id="vid" playsinline muted></video><canvas id="ov" width="320" height="240"></canvas>
+  <span id="zU" style="top:4px">ADELANTE</span><span id="zD" style="bottom:22px">ATRÁS</span><div id="camMsg">Iniciando…</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id), clamp = (v,a,b) => Math.max(a,Math.min(b,v)), T = THREE;
+const sceneEl = $('scene'), scene = sceneEl.object3D, ease = x => x*x*(3-2*x), lerp = (a,b,t) => a+(b-a)*t;
+
+/* ---------- Luces, suelo de hormigón mojado (losas de 5 m) y cielo nublado ---------- */
+scene.add(new T.HemisphereLight(0xe9eef5, 0x6b717a, .95));
+const sun = new T.DirectionalLight(0xffffff, .65); sun.position.set(80,150,100); scene.add(sun);
+const mat = (c,r=.6,m=.2,o={}) => new T.MeshStandardMaterial(Object.assign({color:c,roughness:r,metalness:m},o));
+const bx = (w,h,d,m,x=0,y=0,z=0,p=scene) => { const o = new T.Mesh(new T.BoxGeometry(w,h,d),m); o.position.set(x,y,z); p.add(o); return o; };
+const floor = new T.Mesh(new T.PlaneGeometry(1000,1000), mat(0x676d75,.35,.15)); floor.rotation.x = -Math.PI/2; scene.add(floor);
+const slabs = new T.GridHelper(1000,200,0x58606a,0x58606a); slabs.material.transparent = true; slabs.material.opacity = .35; slabs.position.y = .01; scene.add(slabs);
+function label(txt,w,h,fg='#fff',font=90){
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d');
+  g.fillStyle = fg; g.font = `bold ${font}px Arial`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt,128,66);
+  return new T.Mesh(new T.PlaneGeometry(w,h), new T.MeshBasicMaterial({map:new T.CanvasTexture(c),transparent:true}));
+}
+
+/* ---------- Contenedor real de 40 pies: 12,19 × 2,59 (alto) × 2,44 m ---------- */
+const CH = 2.59, CW = 2.44, CL = 12.19, CHALF = CH/2, HANG = CHALF+.25;     // HANG: centro del contenedor bajo el spreader
+const rib = (() => { const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0,0,256,256); g.fillStyle = 'rgba(0,0,0,.3)'; for(let i=0;i<256;i+=8) g.fillRect(i,0,3,256); return new T.CanvasTexture(c); })();
+const CMAT = [0x8c3a2c,0xc79a1f,0x2f5d8a,0x3f7d4f,0x1f8a8a,0x7a4f9a,0xb7bec6,0xc4552a].map(c => mat(c,.55,.25,{map:rib})), CGEO = new T.BoxGeometry(CL,CH,CW), frameMat = mat(0x20252b,.5,.5);
+function makeContainer(i){
+  const g = new T.Group(); g.add(new T.Mesh(CGEO, CMAT[i%8])); g.userData = {grow:1};
+  [-1,1].forEach(a => [-1,1].forEach(b => [-1,1].forEach(c => bx(.45,.3,.3,frameMat,a*5.97,c*(CHALF-.15),b*1.1,g))));
+  return g;
+}
+
+/* ---------- Grúas pórtico: patas, celosía, pluma, carro, cables y spreader con viga de cabezal ---------- */
+const CR = mat(0xd7dde2,.5,.4), CO = mat(0xe05a10,.5,.3), SPM = mat(0x3b4450,.55,.5), YEL = mat(0xf2c200,.5,.2), CBM = mat(0x2b2b2b,.8,.2), YS = mat(0xe0a800,.5,.4), RED = mat(0xc62828,.5,.3), HOVER = 18, TOPY = 25.2;
+function makeCrane(x,z,num,rot=0){
+  const g = new T.Group(); g.position.set(x,0,z); g.rotation.y = rot; scene.add(g);
+  [-1,1].forEach(a => [-1,1].forEach(b => bx(.9,26,.9,CR,a*7.5,13,b*6,g)));
+  [-1,1].forEach(b => { bx(16.2,1.2,1,CR,0,26,b*6,g); bx(15,.5,.5,CR,0,12,b*6,g); });
+  [-1,1].forEach(a => [-1,1].forEach(k => { bx(.3,28.6,.3,CR,a*7.5,13,0,g).rotation.x = k*.43; }));    // celosía
+  bx(2,1.6,60,CR,0,27.2,-20,g); bx(3.4,2.4,4,CO,0,28.8,2,g);                                          // pluma + sala de máquinas
+  [-1,1].forEach(a => bx(.5,24,1,CO,a*8.3,12,6.4,g));                                                  // escaleras naranjas
+  const n = label(num,6,3,'#333'); n.position.set(0,21,6.6); g.add(n);
+  const tro = bx(3,1.2,3.4,YS,0,25.8,0,g);                                                             // carro amarillo sobre la pluma
+  const sp = new T.Group(); sp.position.y = HOVER; g.add(sp);
+  bx(12.2,.6,2.4,YS,0,0,0,sp); bx(2.8,.6,2.6,YS,0,1.6,0,sp);                                           // viga del spreader + cabezal
+  [-1,1].forEach(a => [-1,1].forEach(b => { bx(.3,1.05,.3,CR,a,.78,b,sp); bx(.55,.34,.4,RED,a*5.9,-.4,b*1.1,sp); bx(.3,.5,.3,RED,a*5.9,.05,b*1.1,sp); }));   // guías rígidas + ganchos rojos en las esquinas
+  const cab = [[-1,-1],[1,-1],[-1,1],[1,1]].map(([cx,cz]) => ({c:bx(.1,1,.1,CBM,cx,20,cz,g),cx,cz}));
+  return {g,sp,tro,cab};
+}
+const updCrane = c => { const tz = c.sp.position.z, y = c.sp.position.y+1.9; c.tro.position.z = tz;
+  c.cab.forEach(o => { o.c.position.set(o.cx,(TOPY+y)/2,o.cz+tz); o.c.scale.y = TOPY-y; }); };
+const P = new T.Vector3(-60,0,24), D = new T.Vector3(60,0,24), OBS = [];
+const addObs = (cx,cz,hx,hz) => OBS.push({x0:cx-hx,x1:cx+hx,z0:cz-hz,z1:cz+hz});
+const crane1 = makeCrane(P.x,P.z,'48',-Math.PI/2), crane2 = makeCrane(D.x,D.z,'90',-Math.PI/2);
+[-1,1].forEach(a => [-1,1].forEach(b => { addObs(P.x+b*6,P.z+a*7.5,.5,.5); addObs(D.x+b*6,D.z+a*7.5,.5,.5); }));
+[[-110,-48,'24'],[-10,-48,'63'],[90,-48,'46']].forEach(([x,z,n]) => makeCrane(x,z,n));                // grúas del fondo
+
+/* ---------- Pistas de carga (C) y de descarga (D) ---------- */
+bx(14,.03,26,mat(0x3a6f8f,.5,.1),P.x,.015,P.z); bx(14,.03,26,mat(0x3b7a52,.5,.1),D.x,.015,D.z);
+
+/* Patio de apilamiento junto a la grúa de patio + patio lejano */
+const TOTAL = 8, slotPos = n => ({x:D.x+14+Math.floor(n/3)*3, y:CHALF+(n%3)*CH+.02});
+bx(20,.03,15,mat(0x58606a,.6,.1),D.x+22,.015,D.z); bx(26,.03,15,mat(0x3f4a58,.6,.1),P.x+25,.015,P.z);
+for(let r=0;r<2;r++) for(let i=-8;i<=8;i++){
+  const h = 1+(Math.abs(Math.sin(i*7.3+r))*3|0);
+  for(let k=0;k<h;k++){ const m = new T.Mesh(CGEO, CMAT[((i*3+k+r)%8+8)%8]); m.position.set(i*12.8,CHALF+k*CH,-75-r*2.7); scene.add(m); }
+}
+
+/* ---------- Ruta cerrada (~370 m): ida por delante, regreso por detrás ---------- */
+const PTS = [[-60,24],[-60,-6],[-42,-18],[42,-18],[60,-6],[60,24],[60,42],[42,54],[-42,54],[-60,42]];
+const loop = new T.CatmullRomCurve3(PTS.map(([x,z]) => new T.Vector3(x,0,z)), true, 'centripetal'), LEN = loop.getLength();
+const uAt = (x,z) => { let b = 0, bd = 1e9; for(let i=0;i<3000;i++){ const p = loop.getPointAt(i/3000), d = (p.x-x)**2+(p.z-z)**2; if(d<bd){ bd = d; b = i/3000; } } return b; };
+const U_P = uAt(P.x,P.z), U_D = uAt(D.x,D.z);
+const ribbon = new T.Mesh(new T.TubeGeometry(loop,400,.3,3,true), mat(0xf4c20d,.6,0,{emissive:0x4a3b00})); ribbon.scale.y = .03; ribbon.position.y = .03; scene.add(ribbon);
+
+/* ---------- AGV azul (según la ficha): 16,6 × 3,2 m · neumáticos Ø 1,35 m agrupados de a 2 en cada extremo · cubierta a 1,55 m ---------- */
+const DECK = 1.55, TR = .675, TW = .55;                                                              // altura de cubierta · radio y ancho del neumático (Ø 1,35 m)
+const BL = mat(0x1f7fd1,.4,.35), BD = mat(0x15578f,.5,.4), RB = mat(0x16181b,.9,.1), ST = mat(0x9aa3ad,.35,.8), RDG = mat(0xd32f2f,.55,.25), agv = new T.Group(); scene.add(agv);
+const tex = (w,h,fn) => { const c = document.createElement('canvas'); c.width = w; c.height = h; fn(c.getContext('2d'),w,h); const t = new T.CanvasTexture(c); t.wrapS = t.wrapT = T.RepeatWrapping; return t; };
+const treadTex = tex(256,64,(g,w,h) => { g.fillStyle = '#111'; g.fillRect(0,0,w,h); g.fillStyle = '#2d2d2d'; for(let i=0;i<w;i+=16) g.fillRect(i,0,9,h); }); treadTex.repeat.set(3,1);
+const rimTex = tex(128,128,(g) => { g.fillStyle = '#8f98a3'; g.beginPath(); g.arc(64,64,64,0,7); g.fill(); g.fillStyle = '#6a727c'; g.beginPath(); g.arc(64,64,46,0,7); g.fill();
+  g.fillStyle = '#d6dbe0'; for(let i=0;i<10;i++){ const a = i/10*6.283; g.beginPath(); g.arc(64+Math.cos(a)*36,64+Math.sin(a)*36,5,0,7); g.fill(); } g.fillStyle = '#4a4f57'; g.beginPath(); g.arc(64,64,16,0,7); g.fill(); });
+const hazTex = tex(128,64,(g,w,h) => { g.fillStyle = '#f2c200'; g.fillRect(0,0,w,h); g.fillStyle = '#111'; for(let i=-h;i<w;i+=32){ g.beginPath(); g.moveTo(i,h); g.lineTo(i+16,h); g.lineTo(i+16+h,0); g.lineTo(i+h,0); g.fill(); } });
+const LIT = mat(0xffffff,.3,0,{emissive:0xfff2cc}), AMB = mat(0xffaa00,.3,0,{emissive:0xff8800});
+
+/* Plataforma, reborde, panel central hundido con rieles y cajón central con escotilla */
+bx(14.2,.35,3.2,BL,0,DECK-.175,0,agv);
+[-1,1].forEach(b => { bx(14.2,.1,.14,BD,0,DECK+.05,b*1.53,agv); bx(2.6,.04,.12,ST,0,DECK+.02,b*.95,agv); });
+bx(3.0,.03,1.7,BD,0,DECK+.015,0,agv);
+bx(7.2,.8,3.2,BL,0,.8,0,agv);
+[-1,1].forEach(b => {
+  bx(2.2,.5,.05,BD,-1.9,.8,b*1.62,agv); bx(.6,.06,.07,ST,-1.9,.88,b*1.66,agv);                       // escotilla con manija
+  const n = label('AGV 384',3.0,1.5); n.position.set(1.4,.85,b*1.63); if(b<0) n.rotation.y = Math.PI; agv.add(n);   // placa de identificación
+});
+/* Módulos de extremo: gabinete con persianas, parachoques con franjas, faros, LiDAR, baliza, antena y paro de emergencia */
+[-1,1].forEach(s => {
+  bx(1.2,1.1,3.2,BL,s*7.7,.95,0,agv);
+  const hz = new T.Mesh(new T.PlaneGeometry(3.0,.45), new T.MeshBasicMaterial({map:hazTex})); hz.position.set(s*8.31,.7,0); hz.rotation.y = s*Math.PI/2; agv.add(hz);
+  [-1,1].forEach(b => { bx(.1,.16,.45,LIT,s*8.3,1.15,b*1.0,agv); for(let i=0;i<5;i++) bx(.9,.05,.04,BD,s*7.7,.65+i*.14,b*1.61,agv); bx(.12,.12,.12,RDG,s*7.2,1.0,b*1.64,agv); });
+  const lid = new T.Mesh(new T.CylinderGeometry(.14,.14,.22,16),RB); lid.position.set(s*7.9,1.61,0); agv.add(lid);
+  const dome = new T.Mesh(new T.SphereGeometry(.12,16,8,0,6.283,0,1.57),mat(0x37d5e6,.2,.6)); dome.position.set(s*7.9,1.72,0); agv.add(dome);
+  bx(.3,.22,.3,AMB,s*7.4,1.61,.9,agv); bx(.3,.22,.3,AMB,s*7.4,1.61,-.9,agv);
+  const ant = new T.Mesh(new T.CylinderGeometry(.02,.02,1.4,8),RB); ant.position.set(s*7.5,2.2,1.45); agv.add(ant);
+  const ball = new T.Mesh(new T.SphereGeometry(.07,12,8),AMB); ball.position.set(s*7.5,2.92,1.45); agv.add(ball);
+  /* Guías rojas: esquinas (contenedor 40') y centrales (contenedor 20'); no tocan el contenedor */
+  [-1,1].forEach(b => { bx(1.0,.7,.25,RDG,s*5.7,DECK+.35,b*1.42,agv); bx(.25,.7,1.0,RDG,s*6.4,DECK+.35,b*.8,agv); bx(.9,.7,.25,RDG,s*2.6,DECK+.35,b*1.42,agv); bx(.9,.22,.2,RDG,s*5.7,DECK+.8,b*1.42,agv); });
+});
+/* Neumáticos Ø 1,35 m: 2 + 2 por lado, con dibujo, llanta y pernos; guardabarros sobre cada pareja */
+const wheels = [];
+[-6,-4.4,4.4,6].forEach(x => [-1,1].forEach(b => {
+  const w = new T.Group(); w.position.set(x,TR,b*1.4); agv.add(w);
+  const tire = new T.Mesh(new T.CylinderGeometry(TR,TR,TW,32), [new T.MeshStandardMaterial({map:treadTex,roughness:.95}),RB,RB]); tire.rotation.x = Math.PI/2; w.add(tire);
+  const rim = new T.Mesh(new T.CylinderGeometry(.4,.4,TW+.02,24),ST); rim.rotation.x = Math.PI/2; w.add(rim);
+  [1,-1].forEach(f => { const h = new T.Mesh(new T.CircleGeometry(.4,24), new T.MeshBasicMaterial({map:rimTex})); h.position.z = f*(TW/2+.016); if(f<0) h.rotation.y = Math.PI; w.add(h); });
+  wheels.push(w);
+}));
+[-1,1].forEach(s => [-1,1].forEach(b => bx(3.4,.1,.7,BD,s*5.2,TR*2+.07,b*1.5,agv)));
+const blob = new T.Mesh(new T.CircleGeometry(1,24), new T.MeshBasicMaterial({color:0,transparent:true,opacity:.28,depthWrite:false}));
+blob.rotation.x = -Math.PI/2; blob.position.y = .02; blob.scale.set(9.4,2.1,1); agv.add(blob);
+const ON_AGV = DECK+.04+CHALF;                                                                        // el contenedor apoya justo sobre los rieles (4 cm sobre la cubierta)                                                                              // el contenedor apoya exactamente sobre la cubierta
+                                                                              // centro del contenedor sobre la plataforma
+
+/* ---------- Estado del ciclo ---------- */
+let mode = 'auto', paused = false, phase = 'TO_PICK', tPh = 0, stepDone = 0, made = 0, spdK = 1;
+let u = U_P, speed = 0, cargo = null, stackN = 0, blockMsg = '';
+const crates = [], stacked = [], qI = new T.Quaternion(), V = (x,y,z) => new T.Vector3(x,y,z);
+const setPose = (p, r) => { agv.position.set(p.x,0,p.z); agv.rotation.y = r; };
+{ const p = loop.getPointAt(u), t = loop.getTangentAt(u); setPose(p, Math.atan2(-t.z,t.x)); }
+const rowX = i => P.x+14+i*3, row = [];                       // fila de 8 contenedores junto a la torre de carga
+function buildRow(){ for(let i=0;i<TOTAL;i++){ const c = makeContainer(i); c.rotation.y = Math.PI/2; c.position.set(rowX(i),CHALF,P.z); scene.add(c); row[i] = c; crates.push(c); } }
+buildRow();
+const dAGV = pt => Math.hypot(agv.position.x-pt.x, agv.position.z-pt.z), near = pt => dAGV(pt) < 3 && Math.abs(speed) < .5;
+function setPhase(p){ phase = p; tPh = 0; stepDone = 0; }
+const STEP = {TO_PICK:0,LOADING:1,TO_DROP:2,UNLOADING:3}, MS = {
+  TO_PICK:'1 · Dirigiéndose a la grúa de carga', LOADING:'2 · La grúa toma un contenedor de la fila y lo baja al AGV',
+  TO_DROP:'3 · Trasladando por la ruta a la grúa de descarga', UNLOADING:'4 · La grúa engancha el contenedor y lo sube' };
+const YT = {IDLE:'libre',DOWN:'bajando sobre el AGV',GRAB:'enganchando',UP:'subiendo con carga',MOVE:'trasladando al patio',LOWER:'apilando',REL:'soltando ganchos',UP2:'subiendo vacía',BACK:'regresando'};
+const LT = {IDLE:'libre',MOVE1:'yendo a la fila',DOWN1:'bajando a la fila',GRAB1:'enganchando',UP1:'subiendo con carga',MOVE2:'llevándolo al AGV',HOLD:'esperando al AGV',DOWN2:'bajando al AGV',REL2:'soltando ganchos',UP2:'subiendo vacía'};
+function tween(dt){
+  const k = 1-Math.exp(-6*dt);
+  crates.forEach(c => { const d = c.userData; if(d.tp) c.position.lerp(d.tp,k); if(d.tq) c.quaternion.slerp(d.tq,k);
+    if(d.grow<1){ d.grow = Math.min(1,d.grow+dt*1.2); c.scale.setScalar(.2+.8*d.grow); } });
+}
+
+const rowLeft = () => row.filter(Boolean).length;
+const ctl = (S,sp,dt) => { S.t += dt; return { go:(dur,fn) => { fn(ease(clamp(S.t/dur,0,1))); return S.t>=dur; }, next:ph => { S.ph = ph; S.t = 0; S.a = sp.position.y; S.b = sp.position.z; S.g = 0; } }; };
+const CARRY = 16, LAND2 = ON_AGV+HANG, PICK_SP = CHALF+HANG;
+const LD = {ph:'IDLE',t:0,a:0,b:0,g:0,i:-1,c:null}, Y = {ph:'IDLE',t:0,a:0,b:0,g:0,slot:null,c:null};
+
+/* Grúa de carga: toma el siguiente contenedor de la fila, lo espera sobre la pista y lo baja sobre el AGV */
+function loader(dt){
+  const sp = crane1.sp, {go,next} = ctl(LD,sp,dt);
+  switch(LD.ph){
+    case 'IDLE': LD.i = row.findIndex(Boolean); if(LD.i>=0) next('MOVE1'); break;
+    case 'MOVE1': { const tz = -(rowX(LD.i)-P.x); if(go(Math.abs(tz)/3.5+1,k => sp.position.z = lerp(LD.b,tz,k))) next('DOWN1'); break; }
+    case 'DOWN1': if(go(5,k => sp.position.y = lerp(LD.a,PICK_SP,k))) next('GRAB1'); break;
+    case 'GRAB1': if(!LD.g){ LD.c = row[LD.i]; row[LD.i] = null; sp.attach(LD.c); Object.assign(LD.c.userData,{tp:V(0,-HANG,0),tq:null}); LD.g = 1; } if(LD.t>1.2) next('UP1'); break;
+    case 'UP1': if(go(5,k => sp.position.y = lerp(LD.a,CARRY,k))) next('MOVE2'); break;
+    case 'MOVE2': if(go(Math.abs(LD.b)/3.5+1,k => sp.position.z = lerp(LD.b,0,k))) next('HOLD'); break;
+    case 'HOLD': if(phase==='LOADING' && tPh>1.5) next('DOWN2'); break;                                   // AGV ya alineado bajo la grúa
+    case 'DOWN2': if(go(5,k => sp.position.y = lerp(LD.a,LAND2,k))) next('REL2'); break;
+    case 'REL2': if(!LD.g){ agv.attach(LD.c); Object.assign(LD.c.userData,{tp:V(0,ON_AGV,0),tq:null}); cargo = LD.c; LD.c = null; LD.g = 1; } if(LD.t>.8) next('UP2'); break;
+    case 'UP2': if(go(5,k => sp.position.y = lerp(LD.a,CARRY,k))) next('IDLE');
+      if(phase==='LOADING' && sp.position.y>9) setPhase('TO_DROP'); break;                               // ya salió de las guías: el AGV parte
+  }
+}
+
+/* Grúa de descarga: baja, engancha el contenedor sobre el AGV, lo sube y lo apila (sin desaparecer) */
+function yard(dt){
+  const sp = crane2.sp, {go,next} = ctl(Y,sp,dt);
+  switch(Y.ph){
+    case 'IDLE': if(phase==='UNLOADING' && cargo && tPh>1.5){ Y.c = cargo; next('DOWN'); } break;
+    case 'DOWN': if(go(5,k => sp.position.y = lerp(Y.a,LAND2,k))) next('GRAB'); break;
+    case 'GRAB': if(!Y.g){ sp.attach(Y.c); Object.assign(Y.c.userData,{tp:V(0,-HANG,0),tq:null}); cargo = null; Y.g = 1; } if(Y.t>1.2) next('UP'); break;
+    case 'UP': if(go(5,k => sp.position.y = lerp(Y.a,CARRY,k))){ Y.slot = slotPos(stackN); next('MOVE'); }
+      if(phase==='UNLOADING' && sp.position.y>9) setPhase('TO_PICK'); break;
+    case 'MOVE': { const tz = -(Y.slot.x-D.x); if(go(Math.abs(tz)/3.5+1,k => sp.position.z = lerp(Y.b,tz,k))) next('LOWER'); break; }
+    case 'LOWER': if(go(5,k => sp.position.y = lerp(Y.a,Y.slot.y+HANG,k))) next('REL'); break;
+    case 'REL': if(!Y.g){ scene.attach(Y.c); Object.assign(Y.c.userData,{tp:V(Y.slot.x,Y.slot.y,D.z),tq:null}); Y.g = 1; }
+      if(Y.t>1){ stacked.push(Y.c); Y.c = null; stackN++; next('UP2'); } break;
+    case 'UP2': if(go(4,k => sp.position.y = lerp(Y.a,CARRY,k))) next('BACK'); break;
+    case 'BACK': if(go(Math.abs(Y.b)/3.5+1,k => sp.position.z = lerp(Y.b,0,k))) next('IDLE'); break;
+  }
+}
+
+function mission(dt){
+  tPh += dt; blockMsg = '';
+  if(phase==='TO_PICK' && near(P)){ if(!rowLeft() && LD.ph==='IDLE' && !cargo) setPhase('DONE'); else setPhase('LOADING'); }
+  else if(phase==='TO_DROP' && near(D)){
+    if(Y.ph!=='IDLE') blockMsg = 'Esperando que la grúa de descarga termine…'; else setPhase('UNLOADING');
+  }
+  else if(phase==='LOADING' && !['DOWN2','REL2','UP2'].includes(LD.ph)) blockMsg = 'La grúa de carga trae un contenedor de la fila… ('+LT[LD.ph]+')';
+}
+
+/* Reinicio: vuelven los 8 contenedores a la fila y el AGV a la grúa de carga */
+function resetSim(){
+  crates.forEach(c => c.parent && c.parent.remove(c)); crates.length = 0; stacked.length = 0; row.length = 0;
+  [crane1,crane2].forEach(c => c.sp.position.set(0,HOVER,0));
+  Object.assign(LD,{ph:'IDLE',t:0,g:0,i:-1,c:null}); Object.assign(Y,{ph:'IDLE',t:0,g:0,slot:null,c:null});
+  cargo = null; stackN = 0; speed = 0; u = U_P; const p = loop.getPointAt(u), t = loop.getTangentAt(u); setPose(p, Math.atan2(-t.z,t.x));
+  setPhase('TO_PICK'); buildRow();
+}
+$('bClear').onclick = resetSim;
+
+/* Colisión del AGV (manual) contra las patas de las grúas */
+function collide(){
+  const r = agv.rotation.y, c = Math.cos(r), s = Math.sin(r);
+  const pts = [[8.3,1.8],[8.3,-1.8],[-8.3,1.8],[-8.3,-1.8],[4.15,1.8],[4.15,-1.8],[-4.15,1.8],[-4.15,-1.8],[0,1.8],[0,-1.8],[8.3,0],[-8.3,0]];
+  for(let it=0;it<3;it++) for(const [lx,lz] of pts){
+    const wx = agv.position.x+lx*c+lz*s, wz = agv.position.z-lx*s+lz*c;
+    for(const o of OBS) if(wx>o.x0 && wx<o.x1 && wz>o.z0 && wz<o.z1){
+      const dx = Math.min(wx-o.x0,o.x1-wx), dz = Math.min(wz-o.z0,o.z1-wz);
+      if(dx<dz) agv.position.x += (wx-o.x0<o.x1-wx ? -dx : dx); else agv.position.z += (wz-o.z0<o.z1-wz ? -dz : dz);
+    }
+  }
+}
+
+/* ---------- Entradas: teclado, botones, mano, mandos VR ---------- */
+const keys = new Set(), btn = {f:0,l:0}, stick = {l:{x:0,y:0},r:{x:0,y:0}}; let hand = {f:0,l:0,t:0}, inF = 0, inL = 0, vrT = 0, eyeFix = 0;
+const dz = v => Math.abs(v)<.15 ? 0 : v;
+addEventListener('keydown',e => { const k = e.key.toLowerCase(); keys.add(k); if(k==='m') toggleMode(); if(k==='p') togglePause(); if(k==='v') nextView(); });
+addEventListener('keyup',e => keys.delete(e.key.toLowerCase()));
+document.querySelectorAll('button[data-d]').forEach(b => {
+  const d = b.dataset.d, set = v => { if(d==='f') btn.f = v; if(d==='b') btn.f = -v; if(d==='l') btn.l = -v; if(d==='r') btn.l = v; b.classList.toggle('on',!!v); };
+  b.addEventListener('pointerdown',() => set(1)); ['pointerup','pointerleave','pointercancel'].forEach(ev => b.addEventListener(ev,() => set(0)));
+});
+function setMode(m){
+  mode = m; if(m==='auto') u = uAt(agv.position.x,agv.position.z);
+  sigStop = false; hand = {f:0,l:0,t:0}; cand = null;
+  $('modeSl').value = m==='auto' ? 0 : 1; $('lA').style.color = m==='auto' ? 'var(--acc)' : 'var(--dim)'; $('lM').style.color = m==='manual' ? 'var(--acc)' : 'var(--dim)';
+  $('zU').style.display = $('zD').style.display = m==='manual' ? '' : 'none';
+  drawZones(); ensureCam();                                              // en ambos modos se usa la cámara
+}
+const toggleMode = () => setMode(mode==='auto' ? 'manual' : 'auto');
+function togglePause(){ paused = !paused; $('bPause').textContent = paused ? 'Reanudar' : 'Pausar'; $('bPause').classList.toggle('on',paused); }
+$('modeSl').oninput = e => setMode(+e.target.value ? 'manual' : 'auto'); $('bPause').onclick = togglePause;
+$('spd').oninput = e => { spdK = +e.target.value; $('spdv').textContent = spdK.toFixed(1)+'×'; };
+[['lh','l'],['rh','r']].forEach(([id,k]) => { const h = $(id);
+  h.addEventListener('thumbstickmoved',e => { stick[k].x = dz(e.detail.x); stick[k].y = dz(e.detail.y); });
+  ['abuttondown','xbuttondown','triggerdown'].forEach(n => h.addEventListener(n,toggleMode));
+  ['bbuttondown','ybuttondown','gripdown'].forEach(n => h.addEventListener(n,nextView));
+  h.addEventListener('thumbstickdown',() => { vrT = .05; }); });
+sceneEl.addEventListener('enter-vr',() => { vrT = 1.2; eyeFix = 0; });
+sceneEl.addEventListener('exit-vr',() => { eyeFix = 0; });
+
+/* ---------- Cámara + MediaPipe Hands (zonas como en el cuadrúpedo) ---------- */
+let camOn = false, camBusy = false, stream = null, hands = null, sigStop = false, cand = null, candT = 0;
+const vid = $('vid'), ov = $('ov'), octx = ov.getContext('2d'), msg = $('camMsg'), D0 = .12, D1 = .3;
+const axis = v => Math.abs(v)<D0 ? 0 : Math.sign(v)*Math.min(1,(Math.abs(v)-D0)/(D1-D0)), dist = (a,b) => Math.hypot(a.x-b.x,a.y-b.y);
+const loadScript = src => new Promise((res,rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('No se pudo cargar '+src)); document.head.appendChild(s); });
+function drawZones(){
+  octx.clearRect(0,0,320,240); if(mode!=='manual') return;                // las zonas solo se usan en modo manual
+  octx.fillStyle = 'rgba(74,222,128,.16)'; octx.fillRect(0,0,320,240*(.5-D0));
+  octx.fillStyle = 'rgba(248,113,113,.16)'; octx.fillRect(0,240*(.5+D0),320,240*(.5-D0));
+  octx.fillStyle = 'rgba(250,204,21,.12)'; octx.fillRect(0,240*(.5-D0),320*(.5-D0),480*D0); octx.fillRect(320*(.5+D0),240*(.5-D0),320*(.5-D0),480*D0);
+  octx.strokeStyle = 'rgba(255,255,255,.5)'; octx.strokeRect(320*(.5-D0),240*(.5-D0),640*D0,480*D0);
+}
+/* Clasifica la mano: 'open' (palma abierta), 'index' (solo el índice arriba), 'fist' (puño) u 'other' */
+function classify(lm){
+  const ext = [[8,6],[12,10],[16,14],[20,18]].map(([t,p]) => dist(lm[t],lm[0])>dist(lm[p],lm[0])), n = ext.filter(Boolean).length;
+  if(n===4) return 'open';
+  if(ext[0] && !ext[1] && !ext[2] && !ext[3] && lm[8].y<lm[5].y && Math.abs(lm[8].x-lm[5].x)<Math.abs(lm[8].y-lm[5].y)) return 'index';
+  return n===0 ? 'fist' : 'other';
+}
+function onHands(r){
+  drawZones(); const lm = r.multiHandLandmarks && r.multiHandLandmarks[0];
+  if(!lm){ cand = null; msg.textContent = mode==='auto' ? 'No veo tu mano · '+(sigStop?'AGV en ALTO':'AGV avanzando') : 'No veo tu mano'; return; }
+  lm.forEach(p => { octx.fillStyle = 'rgba(255,255,255,.7)'; octx.beginPath(); octx.arc(p.x*320,p.y*240,2.5,0,7); octx.fill(); });
+  const g = classify(lm), now = performance.now();
+  if(mode==='auto'){                                                      // señales: ✋ = ALTO · ☝ = seguir (se mantiene hasta la siguiente señal)
+    const want = g==='open' ? 'stop' : g==='index' ? 'go' : null;
+    if(want!==cand){ cand = want; candT = now; } else if(want && now-candT>350){ sigStop = want==='stop'; }
+    msg.textContent = (g==='open' ? '✋ Mano abierta' : g==='index' ? '☝ Índice arriba' : 'Sin señal') + ' · ' + (sigStop ? 'ALTO: AGV detenido' : 'AGV avanzando');
+    return;
+  }
+  const c = lm[9]; octx.fillStyle = '#ff8a2a'; octx.beginPath(); octx.arc(c.x*320,c.y*240,9,0,7); octx.fill();
+  if(g==='fist'){ hand = {f:0,l:0,t:now}; msg.textContent = 'Puño: AGV detenido'; return; }
+  hand = {f:axis(.5-c.y), l:axis((1-c.x)-.5), t:now};
+  msg.textContent = 'Arriba = avanzar · abajo = retroceder · lados = girar';
+}
+const ensureCam = () => { if(!camOn && !camBusy) startCam(); };
+async function startCam(){
+  if(camBusy) return; camBusy = true; $('camBox').style.display = 'block'; msg.textContent = 'Cargando detector de manos…'; drawZones();
+  try{
+    if(!window.Hands) await loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js');
+    stream = await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}}); vid.srcObject = stream; await vid.play();
+    hands = new Hands({locateFile:f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+    hands.setOptions({maxNumHands:1,modelComplexity:0,minDetectionConfidence:.6,minTrackingConfidence:.5}); hands.onResults(onHands);
+    camOn = true; $('bCam').textContent = 'Desactivar cámara'; $('bCam').classList.add('on');
+    (async function loop(){ if(!camOn) return; try{ await hands.send({image:vid}); }catch(e){} requestAnimationFrame(loop); })();
+  }catch(e){ msg.textContent = 'Error: '+e.message+' (permite la cámara y abre el archivo con internet)'; camOn = false; } finally { camBusy = false; }
+}
+function stopCam(){ camOn = false; sigStop = false; if(stream) stream.getTracks().forEach(t => t.stop()); stream = null; $('camBox').style.display = 'none'; hand = {f:0,l:0,t:0};
+  $('bCam').textContent = 'Activar cámara y gestos de mano'; $('bCam').classList.remove('on'); }
+$('bCam').onclick = () => camOn ? stopCam() : startCam();
+
+/* ---------- Vistas. Escritorio: orbital / detrás / panorámica. VR: puesto de carga / grúa de descarga / viaje en el AGV ---------- */
+const VIEWS = ['out','pano','chase'], VN = {out:'exterior (siguiendo al AGV)',pano:'panorámica del puerto',chase:'detrás del AGV'};
+const VR_N = {out:'puesto de observación: grúa de carga',pano:'puesto de observación: grúa de descarga y patio',chase:'a bordo del AGV'};
+let az = .8, el = .35, dst = 55, view = 'out', vy = 0, drag = null; const target = V(0,2,0), tmp = V(0,0,0);
+const rigEl = $('rig'), camEl = $('cam'), rig = rigEl.object3D;
+addEventListener('pointerdown',e => { if(e.target.tagName==='CANVAS') drag = {x:e.clientX,y:e.clientY}; });
+addEventListener('pointerup',() => drag = null);
+addEventListener('pointermove',e => { if(!drag) return; az -= (e.clientX-drag.x)*.006; el = clamp(el+(e.clientY-drag.y)*.005,.04,1.45); drag = {x:e.clientX,y:e.clientY}; });
+addEventListener('wheel',e => { if(e.target.tagName==='CANVAS') dst = clamp(dst*(1+e.deltaY*.001),12,300); },{passive:true});
+function nextView(){ view = VIEWS[(VIEWS.indexOf(view)+1)%3]; $('bView').textContent = 'Vista: '+(sceneEl.is('vr-mode')?VR_N[view]:VN[view]); $('bView').classList.toggle('on',view!=='out'); }
+$('bView').onclick = nextView;
+const faceYaw = (dx,dz) => Math.atan2(-dx,-dz);
+function placeCamera(dt){
+  const camObj = camEl.getObject3D('camera'); if(!camObj) return;
+  const vr = sceneEl.is('vr-mode'), ap = agv.position, yaw = agv.rotation.y, fx = Math.cos(yaw), fz = -Math.sin(yaw);
+  if(vr){                                                     // VR: a escala humana (1:1), de pie sobre el suelo
+    if(vrT>0){ vrT -= dt; if(vrT<=0){ const h = camObj.position.y; eyeFix = (h<1.0) ? 1.65-h : 0; } }   // si el visor reporta altura ~0 (espacio 'local'), sube a ~1,65 m
+    camEl.object3D.position.set(0,0,0); rig.scale.setScalar(1);
+    if(view==='chase'){ rig.position.set(ap.x+fx*7.7, 1.5+eyeFix, ap.z+fz*7.7); rig.rotation.set(0,yaw-Math.PI/2,0); }
+    else { const sx = view==='out' ? P.x+9 : D.x-15, sz = view==='out' ? P.z+20 : D.z+16, tx = view==='out' ? P.x+10 : D.x+8, tz = view==='out' ? P.z : D.z;
+      rig.position.set(sx,eyeFix,sz); rig.rotation.set(0,faceYaw(tx-sx,tz-sz),0); }
+    return;
+  }
+  rig.scale.setScalar(1);
+  if(view==='chase'){
+    let d = yaw-vy; d = Math.atan2(Math.sin(d),Math.cos(d)); vy += d*Math.min(1,dt*3);
+    rig.position.set(ap.x-Math.cos(vy)*26, 10, ap.z+Math.sin(vy)*26); rig.rotation.set(0,0,0); camEl.object3D.position.set(0,0,0);
+    camObj.lookAt(tmp.set(ap.x+fx*12,2,ap.z+fz*12));
+  } else {
+    const pano = view==='pano', c = pano ? tmp.set(5,4,14) : ap, k = pano ? 1.7 : 1;
+    target.lerp(V(c.x,pano?4:2,c.z), Math.min(1,dt*4)); const dd = dst*k;
+    rig.rotation.set(0,0,0); rig.position.set(target.x+dd*Math.cos(el)*Math.sin(az), target.y+dd*Math.sin(el), target.z+dd*Math.cos(el)*Math.cos(az));
+    camEl.object3D.position.set(0,0,0); camObj.lookAt(target);
+  }
+}
+
+/* ---------- Mini-mapa ---------- */
+const mc = $('map').getContext('2d'), mp = (x,z) => [(x+72)*1.4,(z+24)*1.4], route = [];
+for(let i=0;i<=160;i++){ const p = loop.getPointAt(i/160); route.push(mp(p.x,p.z)); }
+function drawMap(){
+  mc.fillStyle = '#10161d'; mc.fillRect(0,0,240,120);
+  mc.strokeStyle = '#f4c20d'; mc.lineWidth = 2; mc.setLineDash([6,4]); mc.beginPath(); route.forEach(([x,y],i) => i?mc.lineTo(x,y):mc.moveTo(x,y)); mc.stroke(); mc.setLineDash([]);
+  const [yx,yy] = mp(D.x+12,D.z-6.5); mc.fillStyle = '#58606a'; mc.fillRect(yx,yy,28,18); mc.fillStyle = '#ff8a2a'; mc.fillRect(yx,yy,28*stackN/TOTAL,18);
+  const [rx,ry] = mp(P.x+12,P.z-6.5); mc.fillStyle = '#3f4a58'; mc.fillRect(rx,ry,36,18); mc.fillStyle = '#38bdf8'; mc.fillRect(rx,ry,36*rowLeft()/TOTAL,18);
+  [[P,'#38bdf8','C'],[D,'#4ade80','D']].forEach(([p,c,t]) => { const [x,y] = mp(p.x,p.z); mc.fillStyle = c; mc.fillRect(x-7,y-7,14,14); mc.fillStyle = '#000'; mc.font = 'bold 10px Arial'; mc.fillText(t,x-3,y+4); });
+  const [x,y] = mp(agv.position.x,agv.position.z), r = agv.rotation.y, dx = Math.cos(r), dy = -Math.sin(r);
+  mc.fillStyle = '#ff8a2a'; mc.beginPath(); mc.moveTo(x+dx*9,y+dy*9); mc.lineTo(x-dx*6-dy*5,y-dy*6+dx*5); mc.lineTo(x-dx*6+dy*5,y-dy*6-dx*5); mc.fill();
+}
+
+/* ---------- Bucle principal ---------- */
+function step(dtr){
+  dtr = Math.min(dtr,.05); const dt = paused ? 0 : dtr, now = performance.now();
+  const locked = phase==='LOADING' || phase==='UNLOADING';
+  const kf = (keys.has('w')||keys.has('arrowup')?1:0)-(keys.has('s')||keys.has('arrowdown')?1:0), kl = (keys.has('d')||keys.has('arrowright')?1:0)-(keys.has('a')||keys.has('arrowleft')?1:0);
+  const vf = -(stick.l.y+stick.r.y), vl = stick.l.x+stick.r.x, hv = now-hand.t<400 && camOn;
+  const tf = clamp(kf+btn.f+vf+(hv?hand.f:0),-1,1), tl = clamp(kl+btn.l+vl+(hv?hand.l:0),-1,1);
+  inF += (tf-inF)*Math.min(1,dtr*6); inL += (tl-inL)*Math.min(1,dtr*6);
+  const src = mode==='auto' ? (camOn ? (sigStop ? 'señal: ALTO' : 'señales de mano') : 'ruta automática') : (kf||kl)?'teclado':(vf||vl)?'mando VR':(btn.f||btn.l)?'botones':(hv&&(hand.f||hand.l))?'mano':'ninguna';
+
+  if(locked){                                                     // se alinea con la pista antes de cargar/descargar
+    const uu = phase==='LOADING' ? U_P : U_D, p = loop.getPointAt(uu), t = loop.getTangentAt(uu), k = Math.min(1,dt*3);
+    agv.position.lerp(tmp.set(p.x,0,p.z),k); let d = Math.atan2(-t.z,t.x)-agv.rotation.y; d = Math.atan2(Math.sin(d),Math.cos(d)); agv.rotation.y += d*k;
+    speed = 0; u = uu;
+  } else if(mode==='auto'){
+    const stopU = phase==='TO_DROP' ? U_D : U_P, d = ((((stopU-u)%1)+1)%1)*LEN;
+    const alto = sigStop && camOn;                                       // señal de ALTO con la cámara activa
+    let vt = Math.min(6*spdK, Math.max(.35,Math.sqrt(2*1.0*d)));
+    if(alto) vt = 0;
+    if(d<.1){ vt = 0; u = stopU; speed = 0; }
+    speed += clamp(vt-speed,-(alto?3.5:1.8)*dt,.9*dt); u = (u+speed*dt/LEN+1)%1;
+    const p = loop.getPointAt(u), t = loop.getTangentAt(u); setPose(p, Math.atan2(-t.z,t.x));
+  } else {
+    speed += (tf*5-speed)*Math.min(1,dt*1.5);
+    agv.rotation.y -= inL*.5*dt*Math.min(1,.3+Math.abs(speed)/3);
+    agv.position.x = clamp(agv.position.x+Math.cos(agv.rotation.y)*speed*dt,-100,100); agv.position.z = clamp(agv.position.z-Math.sin(agv.rotation.y)*speed*dt,-40,90);
+    collide();
+  }
+  wheels.forEach(w => w.rotation.z -= speed*dt/TR);
+  mission(dt); loader(dt); yard(dt); tween(dt); updCrane(crane1); updCrane(crane2);
+  $('ms').textContent = blockMsg || (phase==='DONE' ? (stackN<TOTAL ? 'Terminando de apilar el último contenedor…' : 'Simulación finalizada: 8 contenedores trasladados. Pulsa «Reiniciar simulación».') : MS[phase]);
+  $('ms2').textContent = 'Carga: '+LT[LD.ph]+' · Descarga: '+YT[Y.ph]+' · en fila '+rowLeft()+' · apilados '+stackN+'/'+TOTAL;
+  document.querySelectorAll('#steps li').forEach((li,i) => li.classList.toggle('cur',i===STEP[phase]));
+  $('hud').textContent = `${paused?'PAUSA · ':''}Modo ${mode==='auto'?'automático':'manual'} · Vel ${Math.abs(speed*3.6).toFixed(0)} km/h · Trasladados ${stackN}/${TOTAL} · Fuente: ${src}`;
+  $('sigTxt').textContent = mode==='auto' ? (camOn ? (sigStop ? '✋ ALTO — muestra ☝ índice arriba para seguir' : '☝ AVANZANDO — muestra ✋ mano abierta para detener') : 'Cámara apagada: ruta automática sin señales') : 'MANUAL: mano / teclado / botones';
+  $('sigTxt').style.color = (mode==='auto' && camOn && sigStop) ? '#f87171' : '#8794a6';
+  drawMap(); placeCamera(dtr);
+}
+AFRAME.registerComponent('sim',{ tick(t,dtms){ step(dtms/1000); } });
+setMode('auto');                                                           // inicia en automático y activa la cámara
+</script>
+</body>
+</html>
